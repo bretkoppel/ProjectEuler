@@ -56,62 +56,181 @@ namespace ProjectEuler
         [Test]
         public void Problem3()
         {
-            var flip1 = new long[] {1, 13, 17, 29, 37, 41, 49, 53};
-            var flip2 = new long[] { 7, 19, 31, 43 };
-            var flip3 = new long[] { 11, 23, 47, 59 };
-            const long limit = 13195;
-            var sqrt = Math.Sqrt(limit);
-            var numbers = new bool[limit + 1];
-            for (int x = 1; x <= sqrt; x++)
-            {
-                for (int y = 1; y <= sqrt; y++)
-                {
-                    long n = (4 * (x * x)) + (y * y);
-                    if (n <= limit && (flip1.Contains(n % 60)))
-                        numbers[n] = !numbers[n];
-                    
-                    n = (3*(x * x)) + (y * y);
-                    if (n <= limit && (flip2.Contains(n % 60)))
-                        numbers[n] = !numbers[n];
+            Assert.AreEqual(29, PrimeFactorsByRationalSieve(13195).Max());
+            Assert.AreEqual(6857, PrimeFactorsByRationalSieve(600851475143).Max());
+        }
 
-                    n = (3 * (x * x)) - (y * y);
-                    if (x > y && n <= limit && (flip3.Contains(n % 60)))
-                        numbers[n] = !numbers[n];
+        [Test]
+        public void VerifyBSmooth()
+        {
+            Assert.IsFalse(IsBSmooth(1620, 3));
+            Assert.IsTrue(IsBSmooth(1620, 5));
+            Assert.IsTrue(IsBSmooth(252, 7));
+        }
+
+        private IEnumerable<long> PrimeFactorsByRationalSieve(long value)
+        {
+            return PrimeFactorsByRationalSieve(value, (long)Math.Ceiling(Math.Sqrt(value)));
+        }
+
+        private IEnumerable<long> PrimeFactorsByRationalSieve(long value, long bound)
+        {
+            var primes = PrimesByAtkin(bound);
+            var suitablePrimes = primes.Where(m => value % m == 0);
+            if (suitablePrimes.Any())
+            {
+                var product = suitablePrimes.Aggregate((long)1, (accumulator, current) => accumulator * current);
+                return suitablePrimes.Union(this.PrimeFactorsByRationalSieve(value / product, bound));
+            }
+
+            if (PrimesByAtkin(value).Contains(value))
+                return new long[] { value };
+
+            var zValues = new Dictionary<int, List<List<int>>>();
+            for (int i = 1; i < value && zValues.Count < (primes.Count + 3); i++)
+            {
+                if (!IsBSmooth(i, bound) || !IsBSmooth(i + value, bound))
+                    continue;
+
+                var leftList = new List<int>(primes.Count);
+                var rightList = new List<int>(primes.Count);
+                foreach (var prime in primes)
+                {
+                    var exponent = 1;
+                    while (i % Math.Pow(prime, exponent) == 0)
+                    {
+                        exponent += 1;
+                    }
+                    leftList.Add(exponent - 1);
+
+                    exponent = 1;
+                    while ((i + (double)value) % Math.Pow(prime, exponent) == 0)
+                    {
+                        exponent += 1;
+                    }
+                    rightList.Add(exponent - 1);
+                }
+                zValues.Add(i, new List<List<int>> { leftList, rightList });
+            }
+
+            if (zValues.Any() == false)
+                return suitablePrimes;
+
+            var allEvens = zValues.Values.FirstOrDefault(m => m[0].All(n => n % 2 == 0) && m[1].All(n => n % 2 == 0));
+            if (allEvens == null)
+            {
+                for (int i = 0; i < zValues.Count && allEvens == null; i++)
+                {
+                    for (int n = i + 1; n < zValues.Count && allEvens == null; n++)
+                    {
+                        var leftList = new List<int>(primes.Count);
+                        var rightList = new List<int>(primes.Count);
+                        for (int j = 0; j < primes.Count; j++)
+                        {
+                            var leftAddition = zValues.ElementAt(i).Value[0][j] + zValues.ElementAt(n).Value[0][j];
+                            var rightAddition = zValues.ElementAt(i).Value[1][j] + zValues.ElementAt(n).Value[1][j];
+                            if (leftAddition == rightAddition)
+                            {
+                                leftList.Add(0);
+                                rightList.Add(0);
+                            }
+                            else
+                            {
+                                leftList.Add(leftAddition);
+                                rightList.Add(rightAddition);
+                            }
+                        }
+
+                        if (leftList.All(m => m % 2 == 0) && rightList.All(m => m % 2 == 0))
+                            allEvens = new List<List<int>> { leftList, rightList };
+                    }
                 }
             }
 
-            for (int x = 1; x <= sqrt; x++)
+            double leftProduct = 1;
+            double rightProduct = 1;
+            for (int i = 0; i < primes.Count; i++)
             {
-                if (numbers[x])
+                leftProduct *= Math.Pow(primes.ElementAt(i), allEvens[0][i]);
+                rightProduct *= Math.Pow(primes.ElementAt(i), allEvens[1][i]);
+            }
+
+            var leftSquare = Math.Sqrt(leftProduct);
+            var rightSquare = Math.Sqrt(rightProduct);
+            return suitablePrimes.Union(new[] { GreatestCommonDenominator(Math.Abs((int)leftSquare - (int)rightSquare), value), GreatestCommonDenominator((int)leftSquare + (int)rightSquare, value) });
+        }
+
+        private static long GreatestCommonDenominator(long x, long y)
+        {
+            if (x == y)
+                return x;
+
+            var divisor = x > y ? y : x;
+            while (divisor > 0 && (x % divisor != 0 || y % divisor != 0))
+            {
+                divisor -= 1;
+            }
+            return divisor;
+        }
+
+        private static bool IsBSmooth(long value, long bound)
+        {
+            var primes = PrimesByAtkin(value);
+            return !primes.Any(m => value % m == 0 && m > bound);
+        }
+
+        private static HashSet<long> PrimesByAtkin(long limit)
+        {
+            var flip1 = new long[] { 1, 13, 17, 29, 37, 41, 49, 53 };
+            var flip2 = new long[] { 7, 19, 31, 43 };
+            var flip3 = new long[] { 11, 23, 47, 59 };
+            var sqrt = Math.Sqrt(limit);
+            var numbers = new HashSet<long>();
+            Action<long> flipNumbers = (n) =>
+            {
+                if (!numbers.Add(n))
+                    numbers.Remove(n);
+            };
+
+            for (long x = 1; x <= sqrt; x++)
+            {
+                for (long y = 1; y <= sqrt; y++)
+                {
+                    long n = (4 * (x * x)) + (y * y);
+                    if (n <= limit && (flip1.Contains(n % 60)))
+                        flipNumbers(n);
+
+                    n = (3 * (x * x)) + (y * y);
+                    if (n <= limit && (flip2.Contains(n % 60)))
+                        flipNumbers(n);
+
+                    n = (3 * (x * x)) - (y * y);
+                    if (x > y && n <= limit && (flip3.Contains(n % 60)))
+                        flipNumbers(n);
+                }
+            }
+
+            for (long x = 1; x <= sqrt; x++)
+            {
+                if (numbers.Contains(x))
                 {
                     var x2 = x * x;
                     var multiplier = 1;
                     while (multiplier * x2 <= limit)
                     {
-                        numbers[multiplier * x2] = false;
+                        numbers.Remove(multiplier * x2);
                         multiplier += 1;
                     }
                 }
             }
 
-            var primes = new HashSet<int> {2, 3, 5};
-            for (int x = 5; x <= limit; x++ )
+            var primes = new HashSet<long> { 2, 3, 5 };
+            for (long x = 6; x <= limit; x++)
             {
-                if (numbers[x])
+                if (numbers.Contains(x))
                     primes.Add(x);
             }
-
-            // nothing above the sqrt can be a prime factor either way
-            // so only need to calc primes up to that
-            // once that list exists, work backward from highest prime
-            // to find prime factor
-            foreach (var prime in primes.Reverse())
-            {
-                if (limit%prime == 0)
-                {
-                    Debug.WriteLine(prime);
-                }
-            }
+            return primes;
         }
     }
 }
