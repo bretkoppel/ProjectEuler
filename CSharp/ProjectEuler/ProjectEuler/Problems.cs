@@ -80,7 +80,10 @@ namespace ProjectEuler
                     var l = productString.Substring(0, productString.Length / 2);
                     var r = string.Join("", productString.Reverse()).Substring(0, productString.Length / 2);
                     if (l == r)
+                    {
                         palindrome = product;
+                        break;
+                    }                        
                 }
             }
             Assert.AreEqual(906609, palindrome);
