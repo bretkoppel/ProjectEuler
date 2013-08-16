@@ -1,0 +1,5 @@
+CSharp/ProjectEuler/ProjectEuler/bin/
+CSharp/ProjectEuler/ProjectEuler/obj/
+CSharp/ProjectEuler/packages/
+*.suo
+*.user
