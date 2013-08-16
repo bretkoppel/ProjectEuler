@@ -15,17 +15,18 @@ namespace ProjectEuler
         [Test]
         public void Problem1()
         {
-            var n = new HashSet<int>();
+            var sum = 0;
             var multiplier = 1;
             while (multiplier*3 < 1000)
             {
-                n.Add(multiplier*3);
-                if (multiplier*5 < 1000)
-                    n.Add(multiplier*5);
+                sum += multiplier*3;
+                var five = multiplier*5;
+                if (five < 1000 && five%3 != 0)
+                    sum += five;
 
                 multiplier += 1;
             }
-            Assert.AreEqual(233168, n.Sum());
+            Assert.AreEqual(233168, sum);
         }
 
         /// <summary>
