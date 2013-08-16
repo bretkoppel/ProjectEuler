@@ -60,6 +60,32 @@ namespace ProjectEuler
             Assert.AreEqual(6857, PrimeFactorsByRationalSieve(600851475143).Max());
         }
 
+        /// <summary>
+        /// A palindromic number reads the same both ways. The largest palindrome made from the product of two 2-digit numbers is 9009 = 91 × 99.
+        /// Find the largest palindrome made from the product of two 3-digit numbers.
+        /// </summary>
+        [Test]
+        public void Problem4()
+        {
+            var palindrome = 0;
+            for (int i = 999; i > 0; i--)
+            {
+                for (int j = 999; j > 0; j--)
+                {
+                    var product = (i * j);
+                    if (product <= palindrome)
+                        continue;
+
+                    var productString = product.ToString();
+                    var l = productString.Substring(0, productString.Length / 2);
+                    var r = string.Join("", productString.Reverse()).Substring(0, productString.Length / 2);
+                    if (l == r)
+                        palindrome = product;
+                }
+            }
+            Assert.AreEqual(906609, palindrome);
+        }
+
         [Test]
         public void VerifyBSmooth()
         {
