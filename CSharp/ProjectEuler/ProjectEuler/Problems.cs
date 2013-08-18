@@ -8,11 +8,11 @@ namespace ProjectEuler
 {
     public class Problems
     {
-        [TestFixtureSetUp]
+        [Test]
         public void Benchmarks()
         {
             var methods = this.GetType().GetMethods();
-            foreach (var methodInfo in methods.Where(methodInfo => Attribute.GetCustomAttribute(methodInfo, typeof (TestAttribute)) != null))
+            foreach (var methodInfo in methods.Where(methodInfo => methodInfo.Name != "Benchmarks" && Attribute.GetCustomAttribute(methodInfo, typeof (TestAttribute)) != null))
             {
                 Benchmark((Action)Delegate.CreateDelegate(typeof(Action), this, methodInfo.Name));
             }
@@ -26,6 +26,22 @@ namespace ProjectEuler
         public void Problem1_Slow()
         {
             var sum = Enumerable.Range(1, 999).Where(m => m % 3 == 0 || m % 5 == 0).Sum();
+            Assert.AreEqual(233168, sum);
+        }
+
+        /// <summary>
+        /// If we list all the natural numbers below 10 that are multiples of 3 or 5, we get 3, 5, 6 and 9. The sum of these multiples is 23.
+        /// Find the sum of all the multiples of 3 or 5 below 1000.
+        /// </summary>
+        [Test]
+        public void Problem1_Faster()
+        {
+            var sum = Enumerable.Range(1, 999).Aggregate(0, (acc, item) =>
+                {
+                    if (item%3 == 0 || item%5 == 0)
+                        acc += item;
+                    return acc;
+                });
             Assert.AreEqual(233168, sum);
         }
 
