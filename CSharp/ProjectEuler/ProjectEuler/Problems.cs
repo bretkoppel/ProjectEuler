@@ -8,12 +8,33 @@ namespace ProjectEuler
 {
     public class Problems
     {
+        [TestFixtureSetUp]
+        public void Benchmarks()
+        {
+            var methods = this.GetType().GetMethods();
+            foreach (var methodInfo in methods.Where(methodInfo => Attribute.GetCustomAttribute(methodInfo, typeof (TestAttribute)) != null))
+            {
+                Benchmark((Action)Delegate.CreateDelegate(typeof(Action), this, methodInfo.Name));
+            }
+        }
+
         /// <summary>
         /// If we list all the natural numbers below 10 that are multiples of 3 or 5, we get 3, 5, 6 and 9. The sum of these multiples is 23.
         /// Find the sum of all the multiples of 3 or 5 below 1000.
         /// </summary>
         [Test]
-        public void Problem1()
+        public void Problem1_Slow()
+        {
+            var sum = Enumerable.Range(1, 999).Where(m => m % 3 == 0 || m % 5 == 0).Sum();
+            Assert.AreEqual(233168, sum);
+        }
+
+        /// <summary>
+        /// If we list all the natural numbers below 10 that are multiples of 3 or 5, we get 3, 5, 6 and 9. The sum of these multiples is 23.
+        /// Find the sum of all the multiples of 3 or 5 below 1000.
+        /// </summary>
+        [Test]
+        public void Problem1_Fast()
         {
             var sum = 0;
             var multiplier = 1;
@@ -126,6 +147,17 @@ namespace ProjectEuler
             Assert.IsFalse(IsBSmooth(1620, 3));
             Assert.IsTrue(IsBSmooth(1620, 5));
             Assert.IsTrue(IsBSmooth(252, 7));
+        }
+
+        private void Benchmark(Action action)
+        {
+            var watch = new Stopwatch();
+            watch.Restart();
+            for (int i = 0; i < 500; i++)
+            {
+                action();
+            }
+            Debug.WriteLine(action.Method.Name + ":" + watch.ElapsedMilliseconds);
         }
 
         private IEnumerable<long> PrimeFactorsByRationalSieve(long value)
