@@ -27,5 +27,38 @@ namespace ProjectEuler
 
             Assert.AreEqual(4613732, n.Where(m => m % 2 == 0).Sum());
         }
+
+        [Test]
+        public void Problem2_Recursive()
+        {
+            Assert.AreEqual(4613732, EvenFibonacciToLimit(4000000).Sum());
+        }
+
+        public static IEnumerable<int> EvenFibonacciToLimit(int limit)
+        {
+            var tester = new Func<int, bool>((item) => item % 2 == 0);
+            return FibonacciToLimit(limit, null, tester);
+        }
+
+        private static IEnumerable<int> FibonacciToLimit(int limit, List<int> sequence = null, Func<int, bool> tester = null, List<int> filteredSequence = null)
+        {
+            if (sequence == null)
+                sequence = new List<int> { 0, 1 };
+
+            var nextFib = sequence[sequence.Count - 1] + sequence[sequence.Count - 2];
+            if (nextFib >= limit)
+                return tester == null ? sequence : filteredSequence;
+
+            sequence.Add(nextFib);
+            if (tester != null && tester(nextFib))
+            {
+                if (filteredSequence == null)
+                    filteredSequence = new List<int>();
+
+                filteredSequence.Add(nextFib);
+            }
+
+            return FibonacciToLimit(limit, sequence, tester, filteredSequence);
+        }
     }
 }
