@@ -15,17 +15,21 @@ namespace ProjectEuler
         [Test]
         public void Problem2_Loop()
         {
-            var n = new List<int> { 1, 2 };
-            int x, y, z;
+            var sum = 0;
+            var x = 0;
+            var y = 1;
+            int nextFib;
             do
             {
-                x = n[n.Count - 2];
-                y = n[n.Count - 1];
-                z = x + y;
-                n.Add(z);
-            } while (z < 4000000);
+                nextFib = x + y;
+                if (nextFib % 2 == 0)
+                    sum += nextFib;
 
-            Assert.AreEqual(4613732, n.Where(m => m % 2 == 0).Sum());
+                x = y;
+                y = nextFib;
+            } while (nextFib < 4000000);
+
+            Assert.AreEqual(4613732, sum);
         }
 
         [Test]
@@ -34,12 +38,13 @@ namespace ProjectEuler
             Assert.AreEqual(4613732, EvenFibonacciToLimit(4000000).Sum());
         }
 
-        public static IEnumerable<int> EvenFibonacciToLimit(int limit)
+        private static IEnumerable<int> EvenFibonacciToLimit(int limit)
         {
             var tester = new Func<int, bool>((item) => item % 2 == 0);
             return FibonacciToLimit(limit, null, tester);
         }
 
+        //TODO: Lists could be changed out for simple x, y, and accumulator values.
         private static IEnumerable<int> FibonacciToLimit(int limit, List<int> sequence = null, Func<int, bool> tester = null, List<int> filteredSequence = null)
         {
             if (sequence == null)
