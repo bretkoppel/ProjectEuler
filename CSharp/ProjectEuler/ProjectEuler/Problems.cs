@@ -25,7 +25,7 @@ namespace ProjectEuler
         [Test]
         public void Problem1_Slow()
         {
-            var sum = Enumerable.Range(1, 999).Where(m => m % 3 == 0 || m % 5 == 0).Sum();
+            var sum = Enumerable.Range(3, 997).Where(m => m % 3 == 0 || m % 5 == 0).Sum();
             Assert.AreEqual(233168, sum);
         }
 
@@ -36,12 +36,23 @@ namespace ProjectEuler
         [Test]
         public void Problem1_Faster()
         {
-            var sum = Enumerable.Range(1, 999).Aggregate(0, (acc, item) =>
+            var sum = Enumerable.Range(3, 997).Aggregate(0, (acc, item) =>
                 {
                     if (item%3 == 0 || item%5 == 0)
                         acc += item;
                     return acc;
                 });
+            Assert.AreEqual(233168, sum);
+        }
+
+        /// <summary>
+        /// If we list all the natural numbers below 10 that are multiples of 3 or 5, we get 3, 5, 6 and 9. The sum of these multiples is 23.
+        /// Find the sum of all the multiples of 3 or 5 below 1000.
+        /// </summary>
+        [Test]
+        public void Problem1_Fasterer()
+        {
+            var sum = Enumerable.Range(3, 997).Aggregate(0, (acc, item) => acc + ((item % 3 == 0 || item % 5 == 0) ? item : 0));
             Assert.AreEqual(233168, sum);
         }
 
