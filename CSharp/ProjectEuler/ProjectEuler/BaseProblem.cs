@@ -8,6 +8,8 @@ namespace ProjectEuler
 {
     public class BaseProblem
     {
+        public const double Epsilon = Double.Epsilon;
+
         [Test]
         public void Benchmarks()
         {
