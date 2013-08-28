@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Caching;
 using NUnit.Framework;
 
 namespace ProjectEuler
@@ -37,6 +38,11 @@ namespace ProjectEuler
             for (int i = 0; i < 1000; i++)
             {
                 action();
+
+                // blow out the cache on each run.
+                watch.Stop();
+                MemoryCache.Default.Dispose();
+                watch.Start();
             }
             watch.Stop();
             return watch.ElapsedMilliseconds;
