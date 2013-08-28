@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Numerics;
+using System.Runtime.Caching;
 using NUnit.Framework;
 
 namespace ProjectEuler
@@ -28,6 +30,42 @@ namespace ProjectEuler
             Assert.AreEqual(6857, largestPrime);
         }*/
 
+        [Test]
+        public void Problem3_TrialDivision()
+        {
+            BigInteger limit = 600851475143;
+            
+            // verify the number isn't prime
+            if (IsPrimeByMillerRabin(limit, 10))
+                Assert.Inconclusive("The given number is prime.");
+
+            var largestPrime = BigInteger.Zero;
+            while (limit%2==0)
+            {
+                largestPrime = 2;
+                limit /= 2;
+            }
+
+            // a composite number's largest prime divisor can't be arger than the square root
+            var ceiling = new BigInteger(MathHelpers.Sqrt(limit)) + 1;
+            for (BigInteger tester = 3; tester < ceiling; tester+=2)
+            {
+                if (limit%tester == 0 && IsPrimeByMillerRabin(tester, 3))
+                {
+                    limit /= tester;
+                    largestPrime = tester;
+                    if (IsPrimeByMillerRabin(limit))
+                    {
+                        largestPrime = limit;
+                        break;
+                    }
+
+                    tester -= 2;
+                }
+            }
+            Assert.AreEqual(new BigInteger(6857), largestPrime);
+        }
+
         /// <summary>
         /// The prime factors of 13195 are 5, 7, 13 and 29.
         /// What is the largest prime factor of the number 600851475143 ?
@@ -35,8 +73,8 @@ namespace ProjectEuler
         [Test]
         public void Problem3_RationalSieve()
         {
-            Assert.AreEqual(29, PrimeFactorsByRationalSieve(13195).Max());
-            Assert.AreEqual(6857, PrimeFactorsByRationalSieve(600851475143).Max());
+            //Assert.AreEqual(new BigInteger(29), PrimeFactorsByRationalSieve(13195).Max());
+            Assert.AreEqual(new BigInteger(6857), PrimeFactorsByRationalSieve(600851475143).Max());
         }
 
         [Test]
@@ -45,6 +83,16 @@ namespace ProjectEuler
             Assert.IsFalse(IsBSmooth(1620, 3));
             Assert.IsTrue(IsBSmooth(1620, 5));
             Assert.IsTrue(IsBSmooth(252, 7));
+        }
+
+        [Test]
+        public void VerifyMillerRabin()
+        {
+            Assert.IsTrue(IsPrimeByMillerRabin(104723, 3));
+            Assert.IsTrue(IsPrimeByMillerRabin(93323, 3));
+            Assert.IsFalse(IsPrimeByMillerRabin(93325, 3));
+            Assert.IsFalse(IsPrimeByMillerRabin(93327, 3));
+            Assert.IsFalse(IsPrimeByMillerRabin(10086647, 3));
         }
 
         [Test]
@@ -67,35 +115,37 @@ namespace ProjectEuler
         [Test]
         public void VerifyAtkins()
         {
-            Assert.That(PrimesByAtkin(2), Is.EqualTo(new long[] { 2 }));
-            Assert.That(PrimesByAtkin(3), Is.EqualTo(new long[] { 2, 3 }));
-            Assert.That(PrimesByAtkin(5), Is.EqualTo(new long[] { 2, 3, 5 }));
-            Assert.That(PrimesByAtkin(11), Is.EqualTo(new long[] { 2, 3, 5, 7, 11 }));
-            Assert.That(PrimesByAtkin(40), Is.EqualTo(new long[] { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37 }));
-            Assert.That(PrimesByAtkin(41), Is.EqualTo(new long[] { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41 }));
-            Assert.That(PrimesByAtkin(42), Is.EqualTo(new long[] { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41 }));
+            Assert.That(PrimesByAtkin(2), Is.EqualTo(new BigInteger[] { 2 }));
+            Assert.That(PrimesByAtkin(3), Is.EqualTo(new BigInteger[] { 2, 3 }));
+            Assert.That(PrimesByAtkin(5), Is.EqualTo(new BigInteger[] { 2, 3, 5 }));
+            Assert.That(PrimesByAtkin(11), Is.EqualTo(new BigInteger[] { 2, 3, 5, 7, 11 }));
+            Assert.That(PrimesByAtkin(40), Is.EqualTo(new BigInteger[] { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37 }));
+            Assert.That(PrimesByAtkin(41), Is.EqualTo(new BigInteger[] { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41 }));
+            Assert.That(PrimesByAtkin(42), Is.EqualTo(new BigInteger[] { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41 }));
         }
 
-        public IEnumerable<long> PrimeFactorsByRationalSieve(long value)
+        public IEnumerable<BigInteger> PrimeFactorsByRationalSieve(BigInteger value)
         {
-            return PrimeFactorsByRationalSieve(value, (long)Math.Ceiling(Math.Sqrt(value)));
+
+            var bound = value < 10000 ? Math.Ceiling(MathHelpers.Sqrt(value)) : Math.Ceiling(Math.Pow(BigInteger.Log(value, 2), 3));
+            return PrimeFactorsByRationalSieve(value, new BigInteger(bound));
         }
 
         [Caching]
-        public IEnumerable<long> PrimeFactorsByRationalSieve(long value, long bound)
+        public IEnumerable<BigInteger> PrimeFactorsByRationalSieve(BigInteger value, BigInteger bound)
         {
+            if (IsPrimeByMillerRabin(value, 10))
+                return new[] { value };
+
             var primes = PrimesByAtkin(bound);
             var suitablePrimes = primes.Where(m => value % m == 0);
             if (suitablePrimes.Any())
             {
-                var product = suitablePrimes.Aggregate((long)1, (accumulator, current) => accumulator * current);
+                var product = suitablePrimes.Aggregate(BigInteger.One, (accumulator, current) => accumulator * current);
                 return suitablePrimes.Union(this.PrimeFactorsByRationalSieve(value / product, bound));
             }
 
-            if (IsPrimeByMillerRabin(value, 3) && PrimesByAtkin(value).Contains(value))
-                return new[] { value };
-
-            var zValues = new Dictionary<int, List<List<int>>>();
+            var zValues = new Dictionary<BigInteger, List<List<int>>>();
             for (int i = 1; i < value && zValues.Count < (primes.Count + 3); i++)
             {
                 if (!IsBSmooth(i, bound) || !IsBSmooth(i + value, bound))
@@ -106,14 +156,14 @@ namespace ProjectEuler
                 foreach (var prime in primes)
                 {
                     var exponent = 1;
-                    while (i % Math.Pow(prime, exponent) == 0)
+                    while (i % BigInteger.Pow(prime, exponent) == 0)
                     {
                         exponent += 1;
                     }
                     leftList.Add(exponent - 1);
 
                     exponent = 1;
-                    while ((i + (double)value) % Math.Pow(prime, exponent) == 0)
+                    while ((i + value) % BigInteger.Pow(prime, exponent) == 0)
                     {
                         exponent += 1;
                     }
@@ -156,21 +206,21 @@ namespace ProjectEuler
                 }
             }
 
-            double leftProduct = 1;
-            double rightProduct = 1;
+            var leftProduct = BigInteger.One;
+            var rightProduct = BigInteger.One;
             for (int i = 0; i < primes.Count; i++)
             {
-                leftProduct *= Math.Pow(primes.ElementAt(i), allEvens[0][i]);
-                rightProduct *= Math.Pow(primes.ElementAt(i), allEvens[1][i]);
+                leftProduct *= BigInteger.Pow(primes.ElementAt(i), allEvens[0][i]);
+                rightProduct *= BigInteger.Pow(primes.ElementAt(i), allEvens[1][i]);
             }
 
-            var leftSquare = Math.Sqrt(leftProduct);
-            var rightSquare = Math.Sqrt(rightProduct);
+            var leftSquare = MathHelpers.Sqrt(leftProduct);
+            var rightSquare = MathHelpers.Sqrt(rightProduct);
             return suitablePrimes.Union(new[] { GreatestCommonFactor(Math.Abs((int)leftSquare - (int)rightSquare), value), GreatestCommonFactor((int)leftSquare + (int)rightSquare, value) });
         }
 
         [Caching]
-        public static long GreatestCommonFactor(long x, long y)
+        public static BigInteger GreatestCommonFactor(BigInteger x, BigInteger y)
         {
             if (x == y)
                 return x;
@@ -184,16 +234,20 @@ namespace ProjectEuler
         }
 
         [Caching]
-        public static bool IsBSmooth(long value, long bound)
+        public static bool IsBSmooth(BigInteger value, BigInteger bound)
         {
             var primes = PrimesByAtkin(value);
             return !primes.Any(m => value % m == 0 && m > bound);
         }
 
         [Caching]
-        public static bool IsPrimeByMillerRabin(long candidate, int numberOfRounds = 1)
+        public static bool IsPrimeByMillerRabin(BigInteger candidate, int numberOfRounds = 1)
         {
-            if (candidate % 2 == 0 || Math.Abs((Math.Sqrt(candidate) % 1) - 0) < Epsilon || PrimesByAtkin(1000).Any(m => candidate % m == 0))
+            var primeList = PrimesByAtkin(1000);
+            if (candidate <= 3 || primeList.Contains(candidate))
+                return true;
+
+            if (candidate % 2 == 0 || PrimesByAtkin(1000).Any(m => candidate % m == 0))
                 return false;
 
             var s = 0;
@@ -203,30 +257,30 @@ namespace ProjectEuler
                 s++;
                 d = d / 2;
             }
-
+            
             var rand = new Random();
-            var probablePrime = true;
             for (int i = 0; i < numberOfRounds; i++)
             {
-                var a = rand.Next(2, candidate > int.MaxValue ? int.MaxValue : (int)candidate);
-                var potentialPrime = false;
-                for (int r = 0; r <= s; r++)
-                {
-                    if (Math.Abs(Math.Pow(a, Math.Pow(2, r) * d) % candidate - (candidate - 1)) < Epsilon)
-                    {
-                        potentialPrime = true;
-                        break;
-                    }
-                }
+                var a = rand.Next(2, candidate > int.MaxValue ? int.MaxValue - 2 : (int)candidate - 2);
+                var c = BigInteger.ModPow(a, d, candidate);
+                if (c == 1 || c == candidate-1)
+                    continue;
 
-                if (potentialPrime == false)
+                for (int r = 0; r < s; r++)
                 {
-                    probablePrime = false;
-                    break;
+                    c = BigInteger.ModPow(c, 2, candidate);
+                    if (c == 1)
+                        return false;
+
+                    if (c == candidate - 1)
+                        break;
+
+                    if (r == s - 1)
+                        return false;
                 }
             }
 
-            return probablePrime;
+            return true;
         }
 
         /// <summary>
@@ -236,67 +290,78 @@ namespace ProjectEuler
         /// <remarks>
         /// https://en.wikipedia.org/wiki/Perfect_power
         /// </remarks>
-        public static bool IsPerfectPower(long n)
+        public static bool IsPerfectPower(BigInteger n)
         {
-            var testLimit = Math.Log(n, 2D);
-            var testers = PrimesByAtkin((long)Math.Truncate(testLimit));
+            var testLimit = BigInteger.Log(n, 2D);
+            var testers = PrimesByAtkin(new BigInteger(Math.Floor(testLimit)));
             foreach (var tester in testers)
             {
-                if (Math.Abs(Math.Pow(n, (1D / tester)) % 1) < Epsilon)
+                if (Math.Abs(Math.Exp(BigInteger.Log(n)/(double) tester) % 1) < Epsilon)
                     return true;
             }
             return false;
         }
 
-        private static KeyValuePair<long, ICollection<long>> _cachedPrimes = new KeyValuePair<long, ICollection<long>>();
-
         /// <summary>
         /// Gets all of the prime numbers up to and including the limit using the sieve of Atkin(https://en.wikipedia.org/wiki/Sieve_of_atkin).
         /// </summary>
         /// <param name="limit">The limit.</param>
-        public static ICollection<long> PrimesByAtkin(long limit)
+        public static ICollection<BigInteger> PrimesByAtkin(BigInteger limit)
         {
             if (limit < 2)
-                return new HashSet<long>();
+                return new HashSet<BigInteger>();
             else if (limit < 3)
-                return new HashSet<long> { 2 };
+                return new HashSet<BigInteger> { 2 };
             else if (limit < 5)
-                return new HashSet<long> { 2, 3 };
+                return new HashSet<BigInteger> { 2, 3 };
 
-            if (limit <= _cachedPrimes.Key)
-                return _cachedPrimes.Value.Where(m => m <= limit).ToArray();
+            var cachedPrimes = MemoryCache.Default.Get("LargestAtkin");
+            if (cachedPrimes != null)
+            {
+                var castPrimes = (KeyValuePair<BigInteger, IOrderedEnumerable<BigInteger>>)cachedPrimes;
+                if (limit == castPrimes.Key)
+                    return castPrimes.Value.ToArray();
+                
+                if (limit < castPrimes.Key)
+                    return castPrimes.Value.Where(m => m <= limit).ToArray();
+            }
 
-            var flip1 = new long[] { 1, 13, 17, 29, 37, 41, 49, 53 };
-            var flip2 = new long[] { 7, 19, 31, 43 };
-            var flip3 = new long[] { 11, 23, 47, 59 };
-            var sqrt = Math.Sqrt(limit);
-            var numbers = new HashSet<long>();
-            Action<long> flipNumbers = (n) =>
+            /*var flip1 = new BigInteger[] { 1, 13, 17, 29, 37, 41, 49, 53 };
+            var flip2 = new BigInteger[] { 7, 19, 31, 43 };
+            var flip3 = new BigInteger[] { 11, 23, 47, 59 };*/
+            var flip1 = new BigInteger[] { 1, 5 };
+            var flip2 = new BigInteger[] { 7 };
+            var flip3 = new BigInteger[] { 11 };
+
+            // no built in sqrt, but MSDN offers this(http://msdn.microsoft.com/en-us/library/dd268263.aspx)
+            var sqrt = new BigInteger(MathHelpers.Sqrt(limit));
+            var numbers = new HashSet<BigInteger>();
+            Action<BigInteger> flipNumbers = (n) =>
             {
                 if (!numbers.Add(n))
                     numbers.Remove(n);
             };
 
-            for (long x = 1; x <= sqrt; x++)
+            for (BigInteger x = 1; x <= sqrt; x++)
             {
-                for (long y = 1; y <= sqrt; y++)
+                for (BigInteger y = 1; y <= sqrt; y++)
                 {
-                    long n = (4 * (x * x)) + (y * y);
-                    if (n <= limit && (flip1.Contains(n % 60)))
+                    BigInteger n = (4 * (x * x)) + (y * y);
+                    if (n <= limit && (flip1.Contains(n % 12)))
                         flipNumbers(n);
 
                     n = (3 * (x * x)) + (y * y);
-                    if (n <= limit && (flip2.Contains(n % 60)))
+                    if (n <= limit && (flip2.Contains(n % 12)))
                         flipNumbers(n);
 
                     n = (3 * (x * x)) - (y * y);
-                    if (x > y && n <= limit && (flip3.Contains(n % 60)))
+                    if (x > y && n <= limit && (flip3.Contains(n % 12)))
                         flipNumbers(n);
                 }
             }
 
             var sortedNumbers = numbers.OrderBy(m => m);
-            var primes = new HashSet<long> { 2, 3, 5 };
+            var primes = new HashSet<BigInteger> { 2, 3, 5 };
 
             foreach (var sieveNumber in sortedNumbers)
             {
@@ -313,7 +378,7 @@ namespace ProjectEuler
                 }
             }
 
-            _cachedPrimes = new KeyValuePair<long, ICollection<long>>(limit, primes);
+            MemoryCache.Default["LargestAtkin"] = new KeyValuePair<BigInteger, IOrderedEnumerable<BigInteger>>(limit, primes.OrderBy(m => m));
             return primes;
         }
     }
