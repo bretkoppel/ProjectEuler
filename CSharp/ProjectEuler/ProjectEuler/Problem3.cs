@@ -33,37 +33,8 @@ namespace ProjectEuler
         [Test]
         public void Problem3_TrialDivision()
         {
-            BigInteger limit = 600851475143;
-            
-            // verify the number isn't prime
-            if (IsPrimeByMillerRabin(limit, 10))
-                Assert.Inconclusive("The given number is prime.");
-
-            var largestPrime = BigInteger.Zero;
-            while (limit%2==0)
-            {
-                largestPrime = 2;
-                limit /= 2;
-            }
-
-            // a composite number's largest prime divisor can't be arger than the square root
-            var ceiling = new BigInteger(MathHelpers.Sqrt(limit)) + 1;
-            for (BigInteger tester = 3; tester < ceiling; tester+=2)
-            {
-                if (limit%tester == 0 && IsPrimeByMillerRabin(tester, 3))
-                {
-                    limit /= tester;
-                    largestPrime = tester;
-                    if (IsPrimeByMillerRabin(limit))
-                    {
-                        largestPrime = limit;
-                        break;
-                    }
-
-                    tester -= 2;
-                }
-            }
-            Assert.AreEqual(new BigInteger(6857), largestPrime);
+            Assert.AreEqual(new BigInteger(29), PrimeFactorsByTrialDivision(13195).Max());
+            Assert.AreEqual(new BigInteger(6857), PrimeFactorsByTrialDivision(600851475143).Max());
         }
 
         /// <summary>
@@ -73,7 +44,7 @@ namespace ProjectEuler
         [Test]
         public void Problem3_RationalSieve()
         {
-            //Assert.AreEqual(new BigInteger(29), PrimeFactorsByRationalSieve(13195).Max());
+            Assert.AreEqual(new BigInteger(29), PrimeFactorsByRationalSieve(13195).Max());
             Assert.AreEqual(new BigInteger(6857), PrimeFactorsByRationalSieve(600851475143).Max());
         }
 
@@ -122,6 +93,40 @@ namespace ProjectEuler
             Assert.That(PrimesByAtkin(40), Is.EqualTo(new BigInteger[] { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37 }));
             Assert.That(PrimesByAtkin(41), Is.EqualTo(new BigInteger[] { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41 }));
             Assert.That(PrimesByAtkin(42), Is.EqualTo(new BigInteger[] { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41 }));
+        }
+
+        public IEnumerable<BigInteger> PrimeFactorsByTrialDivision(BigInteger value)
+        {
+            // verify the number isn't prime
+            if (IsPrimeByMillerRabin(value, 10))
+                return new[] {value};
+
+            var primeFactors = new HashSet<BigInteger>();
+            while (value % 2 == 0)
+            {
+                primeFactors.Add(2);
+                value /= 2;
+            }
+
+            // a composite number's largest prime divisor can't be arger than the square root
+            var ceiling = new BigInteger(MathHelpers.Sqrt(value)) + 1;
+            for (BigInteger tester = 3; tester < ceiling; tester += 2)
+            {
+                if (value % tester == 0 && IsPrimeByMillerRabin(tester, 3))
+                {
+                    value /= tester;
+                    primeFactors.Add(tester);
+                    if (IsPrimeByMillerRabin(value))
+                    {
+                        primeFactors.Add(value);
+                        break;
+                    }
+
+                    tester -= 2;
+                }
+            }
+
+            return primeFactors;
         }
 
         public IEnumerable<BigInteger> PrimeFactorsByRationalSieve(BigInteger value)
@@ -247,7 +252,7 @@ namespace ProjectEuler
             if (candidate <= 3 || primeList.Contains(candidate))
                 return true;
 
-            if (candidate % 2 == 0 || PrimesByAtkin(1000).Any(m => candidate % m == 0))
+            if (candidate % 2 == 0 || primeList.Any(m => candidate % m == 0))
                 return false;
 
             var s = 0;
