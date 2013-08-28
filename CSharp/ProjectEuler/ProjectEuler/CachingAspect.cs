@@ -2,11 +2,10 @@
 using System.Runtime.Caching;
 using System.Text;
 using PostSharp.Aspects;
-using PostSharp.Serialization;
 
 namespace ProjectEuler
 {
-    [PSerializable]
+    [Serializable]
     public sealed class CachingAttribute : OnMethodBoundaryAspect
     {
         public override void OnEntry(MethodExecutionArgs args)
