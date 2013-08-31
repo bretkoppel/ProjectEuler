@@ -14,18 +14,18 @@ namespace ProjectEuler
         [Test]
         public void Problem3_Slow()
         {
+            var primes = new[] {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97,101,103,107,109,113,127,131,137,139,149,151,157,163,167,173,179,181,191,193,197,199,211,223,227,229,233,239,241,251,257,263,269,271,277,281,283,293,307,311,313,317,331,337,347,349,353,359,367,373,379,383,389,397,401,409,419,421,431,433,439,443,449,457,461,463,467,479,487,491,499,503,509,521,523,541,547,557,563,569,571,577,587,593,599,601,607,613,617,619,631,641,643,647,653,659,661,673,677,683,691,701,709,719,727,733,739,743,751,757,761,769,773,787,797,809,811,821,823,827,829,839,853,857,859,863,877,881,883,887,907,911,919,929,937,941,947,953,967,971,977,983,991,997,1009};
             const long limit = 600851475143;
-            var ceiling = (long) Math.Ceiling(limit/2.0);
+            var ceiling = (long) Math.Ceiling(limit/3.0);
+            long largestPrime;
 
-            // since 2 is the smallest prime, it's largest factor can't be any larger
-            long largestPrime = 0;
-            for (long tester = 2; tester < ceiling; tester++)
+            for (long tester = 3; tester < ceiling; tester+=2)
             {
-                if (limit%tester == 0)
-                    largestPrime = tester;
-
-                if (tester%100000 == 0)
-                    Debug.WriteLine(tester);
+              if (limit%tester == 0 && primes.All(m => tester % m > 0))
+              {
+                Console.WriteLine("Prime Candidate: " + tester);    
+                largestPrime=tester;
+              }
             }
             Assert.AreEqual(6857, largestPrime);
         }*/
@@ -35,6 +35,15 @@ namespace ProjectEuler
         {
             Assert.AreEqual(new BigInteger(29), PrimeFactorsByTrialDivision(13195).Max());
             Assert.AreEqual(new BigInteger(6857), PrimeFactorsByTrialDivision(600851475143).Max());
+            Assert.AreEqual(new BigInteger(17), PrimeFactorsByTrialDivision(51).Max());
+        }
+
+        [Test]
+        public void Problem3_Atkin()
+        {
+            Assert.AreEqual(new BigInteger(17), PrimeFactorsByAtkin(51).Max());
+            Assert.AreEqual(new BigInteger(29), PrimeFactorsByAtkin(13195).Max());
+            Assert.AreEqual(new BigInteger(6857), PrimeFactorsByAtkin(600851475143).Max());
         }
 
         /// <summary>
@@ -95,9 +104,31 @@ namespace ProjectEuler
             Assert.That(PrimesByAtkin(42), Is.EqualTo(new BigInteger[] { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41 }));
         }
 
+        public IEnumerable<BigInteger> PrimeFactorsByAtkin(BigInteger value)
+        {
+            if (IsPrimeByMillerRabin(value, 10))
+                return new[] { value };
+
+            var firstPrimes = PrimesByAtkin(100).OrderBy(m => m);
+            var primes = firstPrimes.Where(m => value % m == 0).ToList();
+            var primeFactors = new HashSet<BigInteger>(primes);
+            while (primes.Any())
+            {
+                value = primes.Aggregate(value, (current, prime) => current/prime);
+
+                if (IsPrimeByMillerRabin(value, 5))
+                {
+                    primeFactors.Add(value);
+                    return primeFactors;
+                }
+                primes = firstPrimes.Where(m => value % m == 0).ToList();
+            }
+
+            return primeFactors.Union(PrimeFactorsByTrialDivision(value));
+        }
+
         public IEnumerable<BigInteger> PrimeFactorsByTrialDivision(BigInteger value)
         {
-            // verify the number isn't prime
             if (IsPrimeByMillerRabin(value, 10))
                 return new[] {value};
 
@@ -108,7 +139,6 @@ namespace ProjectEuler
                 value /= 2;
             }
 
-            // a composite number's largest prime divisor can't be arger than the square root
             var ceiling = new BigInteger(MathHelpers.Sqrt(value)) + 1;
             for (BigInteger tester = 3; tester < ceiling; tester += 2)
             {
@@ -280,7 +310,7 @@ namespace ProjectEuler
                     if (c == candidate - 1)
                         break;
 
-                    if (r == s - 1)
+                    if(r == s-1)
                         return false;
                 }
             }
@@ -313,12 +343,9 @@ namespace ProjectEuler
         /// <param name="limit">The limit.</param>
         public static ICollection<BigInteger> PrimesByAtkin(BigInteger limit)
         {
-            if (limit < 2)
-                return new HashSet<BigInteger>();
-            else if (limit < 3)
-                return new HashSet<BigInteger> { 2 };
-            else if (limit < 5)
-                return new HashSet<BigInteger> { 2, 3 };
+            var primes = new HashSet<BigInteger> { 2, 3, 5 };
+            if (limit <= 5)
+                return primes.Where(m => m <= limit).ToArray();
 
             var cachedPrimes = MemoryCache.Default.Get("LargestAtkin");
             if (cachedPrimes != null)
@@ -339,7 +366,7 @@ namespace ProjectEuler
             var flip3 = new BigInteger[] { 11 };
 
             // no built in sqrt, but MSDN offers this(http://msdn.microsoft.com/en-us/library/dd268263.aspx)
-            var sqrt = new BigInteger(MathHelpers.Sqrt(limit));
+            var sqrt = new BigInteger(Math.Ceiling(MathHelpers.Sqrt(limit)));
             var numbers = new HashSet<BigInteger>();
             Action<BigInteger> flipNumbers = (n) =>
             {
@@ -366,8 +393,6 @@ namespace ProjectEuler
             }
 
             var sortedNumbers = numbers.OrderBy(m => m);
-            var primes = new HashSet<BigInteger> { 2, 3, 5 };
-
             foreach (var sieveNumber in sortedNumbers)
             {
                 if (!numbers.Contains(sieveNumber))
